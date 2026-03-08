@@ -1,0 +1,37 @@
+name: Daily GitHub Trending
+
+on:
+  schedule:
+    # 每天上午 9:25 UTC+8 (即 01:25 UTC)
+    - cron: '25 1 * * *'
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  send-trending:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install requests beautifulsoup4
+        
+    - name: Run trending script
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+      run: |
+        python scripts/github-trending-daily.py --top 10 --days 14 --output /tmp/trending.json
+        
+    - name: Send to Feishu
+      env:
+        FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+      run: |
+        python scripts/send-feishu.py --input /tmp/trending.json
